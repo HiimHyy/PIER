@@ -57,7 +57,7 @@ function start_app() {
     (
         cd $CLIENT_DIR && nohup npm run dev >client.log 2>&1 &
         echo $! >"$CLIENT_DIR/vite.PID"
-    ) && echo -e "  > Vite server ${GREEN}started${NC}." || echo -e "  > ${RED}Failed to start Vite server${NC}."
+    ) && echo -e "  > Vite server ${GREEN}started${NC} at http://localhost:5173/." || echo -e "  > ${RED}Failed to start Vite server${NC}."
 
     echo -e "All components ${GREEN}started successfully${NC}."
 }
