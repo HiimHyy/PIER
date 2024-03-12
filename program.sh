@@ -25,8 +25,6 @@ function show_help() {
     echo "  logs          Fetch and display the logs of the Mosquitto MQTT broker."
     echo ""
     echo "Options:"
-    echo "  -v, --verbose     Make the operation more talkative"
-    echo "  -s, --simulate    Simulate the operation only (no changes are made)"
     echo "  -h, --help        Show this help message and exit."
 }
 
@@ -134,14 +132,6 @@ simulate=0
 # Parse global options before the command
 while [[ "$#" -gt 0 ]]; do
     case $1 in
-    -v | --verbose)
-        verbose=1
-        shift
-        ;;
-    -s | --simulate)
-        simulate=1
-        shift
-        ;;
     -h | --help)
         show_help
         exit 0
