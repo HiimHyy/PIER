@@ -13,6 +13,23 @@ CLIENT_DIR="client"
 
 echo -e "${YELLOW}Weather Station Control Script${NC}"
 
+# Function to show help message
+function show_help() {
+    echo "Usage: $0 [command] [options]"
+    echo ""
+    echo "Commands:"
+    echo "  install       Install Node.js dependencies for server and client."
+    echo "  start         Start MQTT broker, Node.js server, and Vite server."
+    echo "  stop          Stop MQTT broker, Node.js server, and Vite server."
+    echo "  status        Show the status of the Mosquitto MQTT broker."
+    echo "  logs          Fetch and display the logs of the Mosquitto MQTT broker."
+    echo ""
+    echo "Options:"
+    echo "  -v, --verbose     Make the operation more talkative"
+    echo "  -s, --simulate    Simulate the operation only (no changes are made)"
+    echo "  -h, --help        Show this help message and exit."
+}
+
 # Function to stop processes listening on specific ports
 function stop_ports() {
     echo "Attempting to free up required ports..."
@@ -110,24 +127,54 @@ function log_app() {
     docker logs mosquitto
 }
 
-case "$1" in
+# Initial values for flags
+verbose=0
+simulate=0
+
+# Parse global options before the command
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+    -v | --verbose)
+        verbose=1
+        shift
+        ;;
+    -s | --simulate)
+        simulate=1
+        shift
+        ;;
+    -h | --help)
+        show_help
+        exit 0
+        ;;
+    *) break ;;
+    esac
+done
+
+# Now, $1 should be the command
+COMMAND="$1"
+shift     # Remove the command from the arguments list
+ARGS="$@" # Remaining arguments
+
+# Parse the command
+case "$COMMAND" in
 install)
-    install_dependencies
+    install_dependencies $ARGS
     ;;
 start)
-    start_app
+    start_app $ARGS
     ;;
 stop)
-    stop_app
+    stop_app $ARGS
     ;;
 status)
-    status_app
+    status_app $ARGS
     ;;
 logs)
-    log_app
+    log_app $ARGS
     ;;
 *)
-    echo -e "${RED}Invalid command. Usage: $0 {install|start|stop|status|logs}${NC}"
+    echo -e "${RED}Invalid command.${NC}\n"
+    show_help
     exit 1
     ;;
 esac
