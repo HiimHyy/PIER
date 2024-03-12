@@ -14,7 +14,7 @@ const app = express();
 const port = 3000;
 
 // MQTT broker settings
-const mqttClient = connect('mqtt://172.20.49.51'); // Update with your MQTT broker's address
+const mqttClient = connect('mqtt://172.20.49.27'); // Update with your MQTT broker's address
 const mqttTopic = 'esp32/temperature'; // Update with your MQTT topic
 
 // MQTT client setup
@@ -26,9 +26,11 @@ mqttClient.on('connect', () => {
 });
 
 mqttClient.on('message', (topic, message) => {
-  const temperature = message.toString();
-  console.log(`Received message: ${temperature}`);
-  insertTemperatureData(temperature).catch(console.error);
+  const data = JSON.parse(message.toString());
+  const temperature = data.temperature;
+  const average = data.average;
+  console.log(`Temperature: ${temperature}, Average: ${average}`);
+  insertTemperatureData({ temperature, average }).catch(console.error);
 });
 
 // Express setup
