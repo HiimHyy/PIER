@@ -1,55 +1,56 @@
-// server.js
 import express from 'express';
-import pkg from 'body-parser';
 import { connect } from 'mqtt';
+import cors from 'cors';
 import {
   connectMongoDB,
   insertTemperatureData,
-  getLatestTemperatureData,
+  getTemperatureRecords, // Adjusted to use the new function
 } from './mongodb.js';
-
-const { json } = pkg;
 
 const app = express();
 const port = 3000;
 
-// MQTT broker settings
-const mqttClient = connect('mqtt://172.20.49.27'); // Update with your MQTT broker's address
-const mqttTopic = 'esp32/temperature'; // Update with your MQTT topic
+app.use(cors());
+app.use(express.json());
 
-// MQTT client setup
+// MQTT broker settings
+const mqttClient = connect('mqtt://192.168.0.12'); // Update with your actual MQTT broker's address
+const mqttTopic = 'esp32/temperature'; // Ensure this matches your topic
+
 mqttClient.on('connect', () => {
-  console.log(`Connected to MQTT Broker.`);
+  console.log('Connected to MQTT Broker.');
   mqttClient.subscribe(mqttTopic, () => {
     console.log(`Subscribed to topic '${mqttTopic}'`);
   });
 });
 
 mqttClient.on('message', (topic, message) => {
-  const data = JSON.parse(message.toString());
-  const temperature = data.temperature;
-  const average = data.average;
-  console.log(`Temperature: ${temperature}, Average: ${average}`);
-  insertTemperatureData({ temperature, average }).catch(console.error);
+  try {
+    const data = JSON.parse(message.toString());
+    const temperature = data.temperature;
+    const average = data.average; // Ensure these match the data structure sent by your device
+    console.log(`Received temperature: ${temperature}, Average: ${average}`);
+    insertTemperatureData({ temperature, average }).catch(console.error); // Adjust based on your actual data structure
+  } catch (error) {
+    console.error('Error processing MQTT message:', error);
+  }
 });
 
-// Express setup
-app.use(json());
+// Connect to MongoDB upon server start
+connectMongoDB().catch(console.error);
 
+// Adjusted to serve multiple temperature records
 app.get('/temperature', async (req, res) => {
   try {
-    const latestTemperature = await getLatestTemperatureData();
-    res.send({
-      temperature: latestTemperature
-        ? latestTemperature.temperature
-        : 'No data',
-    });
+    // Here we call the getTemperatureRecords() which we assumed to implement in mongodb.js
+    const records = await getTemperatureRecords(); // Consider adding query parameters to customize the query
+    res.json(records); // Send an array of records to the client
   } catch (err) {
+    console.error('Error retrieving temperature data:', err);
     res.status(500).send('Error retrieving temperature data');
   }
 });
 
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
-  connectMongoDB().catch(console.error);
 });

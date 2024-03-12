@@ -10,6 +10,7 @@ YELLOW='\033[1;33m'
 MQTT_DIR="mqtt"
 SERVER_DIR="server"
 CLIENT_DIR="client"
+DATABASE_DIR="database"
 
 echo -e "${YELLOW}Weather Station Control Script${NC}"
 
@@ -57,10 +58,13 @@ function install_dependencies() {
 # Function to start the application components
 function start_app() {
     echo "Starting application components..."
-    stop_ports 3000 5173
+    stop_ports 3000 5173 27017
 
     echo "- Starting MQTT broker..."
     (cd $MQTT_DIR && docker-compose up -d) && echo -e "  > MQTT broker ${GREEN}started${NC}." || echo -e "  > ${RED}Failed to start MQTT broker${NC}."
+
+    echo "- Starting MongoDB database..."
+    (cd $DATABASE_DIR && docker-compose up -d) && echo -e "  > MongoDB database ${GREEN}started${NC}." || echo -e "  > ${RED}Failed to start MongoDB database${NC}."
 
     echo "- Starting Node.js server..."
     (
@@ -84,8 +88,11 @@ function stop_app() {
     echo "- Stopping MQTT broker..."
     (cd $MQTT_DIR && docker-compose down) && echo -e "  > MQTT broker ${GREEN}stopped${NC}." || echo -e "  > ${RED}Failed to stop MQTT broker${NC}."
 
+    echo "- Stopping MongoDB database..."
+    (cd $DATABASE_DIR && docker-compose down) && echo -e "  > MongoDB database ${GREEN}stopped${NC}." || echo -e "  > ${RED}Failed to stop MongoDB database${NC}."
+
     stop_servers_and_clear_logs
-    stop_ports 3000 5173
+    stop_ports 3000 5173 27017
 
     echo -e "All components ${GREEN}stopped successfully${NC}."
 }
