@@ -7,7 +7,7 @@ let db, temperatureCollection;
 
 export const connectMongoDB = async () => {
   try {
-    const mongoUri = 'mongodb://mongoadmin:secret@localhost:27017';
+    const mongoUri = 'mongodb://localhost:27017';
     console.log('Connecting to MongoDB at URI:', mongoUri);
 
     const client = new MongoClient(mongoUri, {

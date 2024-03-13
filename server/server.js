@@ -6,15 +6,17 @@ import {
   insertTemperatureData,
   getTemperatureRecords, // Adjusted to use the new function
 } from './mongodb.js';
+import ip from 'ip';
 
 const app = express();
 const port = 3000;
+const mqttBrokerIp = ip.address();
 
 app.use(cors());
 app.use(express.json());
 
 // MQTT broker settings
-const mqttClient = connect('mqtt://192.168.0.12'); // Update with your actual MQTT broker's address
+const mqttClient = connect(`mqtt://${mqttBrokerIp}`);
 const mqttTopic = 'esp32/temperature'; // Ensure this matches your topic
 
 mqttClient.on('connect', () => {

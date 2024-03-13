@@ -2,9 +2,11 @@ import paho.mqtt.client as mqtt
 import time
 import random
 import json
+import socket
 
 # MQTT settings
-mqtt_server = "192.168.0.12"  # Change to your MQTT server IP
+ip = socket.gethostbyname(socket.gethostname())
+mqtt_server = ip
 mqtt_topic = "esp32/temperature"
 client_id = "ESP32_Simulator"
 
