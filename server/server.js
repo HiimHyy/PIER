@@ -4,7 +4,7 @@ import cors from 'cors';
 import {
   connectMongoDB,
   insertTemperatureData,
-  getTemperatureRecords, // Adjusted to use the new function
+  getTemperatureRecords,
 } from './mongodb.js';
 import ip from 'ip';
 
@@ -17,7 +17,7 @@ app.use(express.json());
 
 // MQTT broker settings
 const mqttClient = connect(`mqtt://${mqttBrokerIp}`);
-const mqttTopic = 'esp32/temperature'; // Ensure this matches your topic
+const mqttTopic = 'esp32/temperature';
 
 mqttClient.on('connect', () => {
   console.log('Connected to MQTT Broker.');
@@ -30,23 +30,20 @@ mqttClient.on('message', (topic, message) => {
   try {
     const data = JSON.parse(message.toString());
     const temperature = data.temperature;
-    const average = data.average; // Ensure these match the data structure sent by your device
+    const average = data.average;
     console.log(`Received temperature: ${temperature}, Average: ${average}`);
-    insertTemperatureData({ temperature, average }).catch(console.error); // Adjust based on your actual data structure
+    insertTemperatureData({ temperature, average }).catch(console.error);
   } catch (error) {
     console.error('Error processing MQTT message:', error);
   }
 });
 
-// Connect to MongoDB upon server start
 connectMongoDB().catch(console.error);
 
-// Adjusted to serve multiple temperature records
 app.get('/temperature', async (req, res) => {
   try {
-    // Here we call the getTemperatureRecords() which we assumed to implement in mongodb.js
-    const records = await getTemperatureRecords(); // Consider adding query parameters to customize the query
-    res.json(records); // Send an array of records to the client
+    const records = await getTemperatureRecords();
+    res.json(records);
   } catch (err) {
     console.error('Error retrieving temperature data:', err);
     res.status(500).send('Error retrieving temperature data');

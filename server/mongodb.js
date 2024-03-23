@@ -43,7 +43,7 @@ export const insertTemperatureData = async ({ temperature, average }) => {
 };
 
 // Function to retrieve multiple temperature records
-export const getTemperatureRecords = async (limit = 10) => {
+export const getTemperatureRecords = async (limit = 50) => {
   // Optionally add a limit parameter
   if (!temperatureCollection) {
     console.error('Database not connected');
