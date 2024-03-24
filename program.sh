@@ -11,6 +11,7 @@ MQTT_DIR="mqtt"
 SERVER_DIR="server"
 CLIENT_DIR="client"
 DATABASE_DIR="database"
+TEST_DIR="test"
 
 echo -e "${YELLOW}Weather Station Control Script${NC}"
 
@@ -21,12 +22,13 @@ function show_help() {
     echo "Commands:"
     echo "  install       Install Node.js dependencies for server and client."
     echo "  start         Start MQTT broker, Node.js server, and Vite server."
+    echo "  test          Run tests sensors and send data to MQTT broker."
     echo "  stop          Stop MQTT broker, Node.js server, and Vite server."
     echo "  status        Show the status of the Mosquitto MQTT broker."
     echo "  logs          Fetch and display the logs of the Mosquitto MQTT broker."
     echo ""
     echo "Options:"
-    echo "  -h, --help        Show this help message and exit."
+    echo "  -h, help        Show this help message and exit."
 }
 
 # Function to stop processes listening on specific ports
@@ -43,6 +45,19 @@ function stop_ports() {
             echo -e "  > No processes found on port $PORT. It's already ${GREEN}available${NC}."
         fi
     done
+}
+
+# Function to run tests
+function run_tests() {
+    echo "Setting up test environment..."
+    (cd $TEST_DIR && python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt) && echo -e "  > Test environment ${GREEN}setup successfully${NC}."
+
+    echo "Running app.py in the test directory..."
+    # Activate the virtual environment and run app.py
+    (
+        cd $TEST_DIR && source venv/bin/activate && python app.py
+    ) && echo -e "  > app.py ${GREEN}completed successfully${NC}." || echo -e "  > Running app.py ${RED}failed${NC}."
+
 }
 
 # Function to install Node.js dependencies
@@ -139,7 +154,7 @@ simulate=0
 # Parse global options before the command
 while [[ "$#" -gt 0 ]]; do
     case $1 in
-    -h | --help)
+    -h | help)
         show_help
         exit 0
         ;;
@@ -168,6 +183,9 @@ status)
     ;;
 logs)
     log_app $ARGS
+    ;;
+test)
+    run_tests $ARGS
     ;;
 *)
     echo -e "${RED}Invalid command.${NC}\n"

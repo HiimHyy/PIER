@@ -1,6 +1,6 @@
 # Weather Station Application
 
-This is a weather station application built using Arduino, Vite, MQTT, Node.js, and MongoDB.
+This is a weather station application built using Arduino, Vite, MQTT, Node.js, Python, Docker and MongoDB.
 
 ## Description
 
@@ -12,16 +12,17 @@ The weather station application collects data from various sensors connected to 
 - Real-time communication using MQTT
 - Stores data in a MongoDB database
 - Provides APIs for accessing and analyzing the collected data
+- Mock data for testing purposes
+- Dockerized for easy deployment
 
 ## Prerequisites
 
 Before running the weather station application, make sure you have the following installed:
 
 - Arduino IDE
-- Vite
-- MQTT broker (e.g., Mosquitto)
-- Node.js
-- MongoDB
+- Node package manager (npm)
+- Docker && Docker Compose
+- Python 3
 
 ## Installation
 
