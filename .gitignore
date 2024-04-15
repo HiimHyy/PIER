@@ -22,3 +22,6 @@ Thumbs.db
 
 # Node.js dependencies
 **/node_modules
+
+# Python venv
+**/venv
