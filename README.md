@@ -1,4 +1,4 @@
-# Weather Station Application
+# PIER - Weather Station Application
 
 This is a weather station application built using Arduino, Vite, MQTT, Node.js, Python, Docker and MongoDB.
 
@@ -21,8 +21,8 @@ Before running the weather station application, make sure you have the following
 
 - Arduino IDE
 - Node package manager (npm)
-- Docker && Docker Compose
-- Python 3
+- Docker && Docker-Compose
+- Python (optional)
 
 ## Installation
 
