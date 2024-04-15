@@ -5,6 +5,7 @@ import {
   connectMongoDB,
   insertTemperatureData,
   getTemperatureRecords,
+  deleteAllTemperatureData,
 } from './mongodb.js';
 import ip from 'ip';
 
@@ -47,6 +48,16 @@ app.get('/temperature', async (req, res) => {
   } catch (err) {
     console.error('Error retrieving temperature data:', err);
     res.status(500).send('Error retrieving temperature data');
+  }
+});
+
+app.delete('/temperature', async (req, res) => {
+  try {
+    await deleteAllTemperatureData();
+    res.status(200).send('All temperature records deleted');
+  } catch (err) {
+    console.error('Error deleting temperature records:', err);
+    res.status(500).send('Error deleting temperature records');
   }
 });
 

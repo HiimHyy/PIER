@@ -104,6 +104,25 @@ function App() {
     }
   };
 
+  const deleteTemperatureData = async () => {
+    try {
+      const response = await fetch('http://localhost:3000/temperature', {
+        method: 'DELETE',
+      });
+      if (!response.ok)
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      setChartData({
+        labels: [],
+        datasets: [
+          { ...chartData.datasets[0], data: [] },
+          { ...chartData.datasets[1], data: [] },
+        ],
+      });
+    } catch (error) {
+      console.error('Failed to delete temperature data:', error);
+    }
+  }
+
   useEffect(() => {
     fetchTemperatureData();
     const interval = setInterval(fetchTemperatureData, 5000);

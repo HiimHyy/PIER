@@ -74,6 +74,19 @@ export const getLatestTemperatureData = async () => {
   }
 };
 
+export const deleteAllTemperatureData = async () => {
+  if (!temperatureCollection) {
+    console.error('Database not connected');
+    return;
+  }
+  try {
+    await temperatureCollection.deleteMany({});
+    console.log('All temperature data deleted');
+  } catch (err) {
+    console.error('Error deleting temperature data', err);
+  }
+};
+
 export const disconnectMongoDB = async () => {
   if (db) {
     await db.client.close();
