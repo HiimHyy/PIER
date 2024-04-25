@@ -1,13 +1,16 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <DHT.h>
+#include <LiquidCrystal_I2C.h>
+
+bool systemEnabled = false;
 
 // WiFi Settings
 const char* ssid = "MB210-G";
 const char* password = "studentMAMK";
 
 // MQTT Settings
-const char* mqtt_server = "172.20.49.27";
+const char* mqtt_server = "172.20.49.14";
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
 
@@ -20,6 +23,14 @@ DHT dht(DHTPIN, DHTTYPE);
 #define FAN_TACHO_PIN 27
 volatile int pulseCount = 0;
 
+// LCD settings
+const int lcdColumns = 16;
+const int lcdRows = 2;
+LiquidCrystal_I2C lcd(0x27, lcdColumns, lcdRows);
+
+// Touch Switch settings
+const int TOUCH_SENSOR_PIN = 5;
+
 // Measurement Settings
 struct Measurement {
   float temperature;
@@ -27,7 +38,6 @@ struct Measurement {
 };
 Measurement *firstMeasurement = nullptr;
 Measurement *currentMeasurement = nullptr;
-int measurementCounter = 0;
 int currentMeasurements = 0;
 float runningSum = 0.0;
 const int amountOfMeasurements = 5;
@@ -36,6 +46,7 @@ const int amountOfMeasurements = 5;
 void setup_wifi();
 void reconnect();
 void addMeasurement(float temperature);
+void clearMeasurements();
 float calculateAverage();
 int calculateRPM();
 void IRAM_ATTR onFanSpeed();
@@ -46,38 +57,79 @@ void setup() {
   setup_wifi();
   mqttClient.setServer(mqtt_server, 1883);
 
-  firstMeasurement = new Measurement{0, nullptr};
-  currentMeasurement = firstMeasurement;
-
   pinMode(FAN_TACHO_PIN, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(FAN_TACHO_PIN), onFanSpeed, FALLING);
+
+  // Initialize LCD
+  lcd.init();
+  lcd.backlight();
+
+  pinMode(TOUCH_SENSOR_PIN, INPUT);
 
   Serial.println("Setup complete.");
 }
 
 void loop() {
-  if (!mqttClient.connected()) {
-    reconnect();
-  }
-  mqttClient.loop();
+  static int lastState = LOW;
+  int currentState = digitalRead(TOUCH_SENSOR_PIN);
 
-  static unsigned long lastMillis = 0;
-  if (millis() - lastMillis > 2000) {
-    lastMillis = millis();
-
-    float measuredTemp = dht.readTemperature();
-    if (!isnan(measuredTemp)) {
-      addMeasurement(measuredTemp);
-      float averageTemp = calculateAverage();
-      int fanRPM = calculateRPM();
-
-      Serial.printf("Current Temperature: %.2f, Average Temperature: %.2f, Fan RPM: %d\n", measuredTemp, averageTemp, fanRPM);
-
-      char payload[100];
-      sprintf(payload, "{\"temperature\":%.2f, \"average\":%.2f, \"rpm\":%d}", measuredTemp, averageTemp, fanRPM);
-      mqttClient.publish("esp32/temperature", payload);
+  // Toggle system state on touch sensor state change from LOW to HIGH
+  if(lastState == LOW && currentState == HIGH) {
+    systemEnabled = !systemEnabled; // Toggle the system's enabled state
+    if(systemEnabled) {
+      Serial.println("System Enabled");
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("System Enabled");
     } else {
-      Serial.println("Failed to read from DHT sensor!");
+      Serial.println("System Disabled");
+      clearMeasurements(); // Clear measurements on disable
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("System Disabled");
+    }
+  }
+  lastState = currentState; // Update lastState for the next loop iteration
+
+  if(systemEnabled) {
+    // Only run the main program logic if the system is enabled
+    if (!mqttClient.connected()) {
+      reconnect();
+    }
+    mqttClient.loop();
+
+    static unsigned long lastMillis = 0;
+    if (millis() - lastMillis > 2000) {
+      lastMillis = millis();
+
+      float measuredTemp = dht.readTemperature();
+      if (!isnan(measuredTemp)) {
+        addMeasurement(measuredTemp);
+        float averageTemp = calculateAverage();
+        int fanRPM = calculateRPM();
+
+        Serial.printf("Current Temperature: %.2f, Average Temperature: %.2f, Fan RPM: %d\n", measuredTemp, averageTemp, fanRPM);
+
+        char payload[100];
+        sprintf(payload, "{\"temperature\":%.2f, \"average\":%.2f, \"rpm\":%d}", measuredTemp, averageTemp, fanRPM);
+        mqttClient.publish("esp32/temperature", payload);
+
+        // Display on LCD
+        lcd.clear();
+        lcd.setCursor(0, 0);
+        lcd.print("Temp: ");
+        lcd.print(measuredTemp, 2);
+        lcd.print((char)223); // Degree symbol
+        lcd.print("C");
+        
+        lcd.setCursor(0, 1);
+        lcd.print("Avg: ");
+        lcd.print(averageTemp, 2);
+        lcd.print((char)223); // Degree symbol
+        lcd.print("C");
+      } else {
+        Serial.println("Failed to read from DHT sensor!");
+      }
     }
   }
 }
@@ -99,36 +151,52 @@ void setup_wifi() {
 void reconnect() {
   while (!mqttClient.connected()) {
     Serial.print("Attempting MQTT connection...");
+    // Attempt to connect to the MQTT broker
     if (mqttClient.connect("ESP32_Client")) {
       Serial.println("connected");
     } else {
       Serial.print("failed, rc=");
       Serial.print(mqttClient.state());
       Serial.println(" try again in 5 seconds");
+      // Wait 5 seconds before retrying
       delay(5000);
     }
   }
 }
 
 void addMeasurement(float temperature) {
-  if (currentMeasurements == amountOfMeasurements) {
-    runningSum -= firstMeasurement->temperature;
-    Measurement *temp = firstMeasurement;
+  Measurement* newMeasurement = new Measurement{temperature, nullptr};
+  
+  if (currentMeasurements < amountOfMeasurements) {
+    currentMeasurements++;
+  } else {
+    // Remove the oldest measurement
+    Measurement* temp = firstMeasurement;
+    runningSum -= temp->temperature;
     firstMeasurement = firstMeasurement->next;
     delete temp;
-  } else {
-    currentMeasurements++;
   }
 
   runningSum += temperature;
-  if (!currentMeasurement->next) {
-    currentMeasurement->next = new Measurement{temperature, nullptr};
-  }
-  currentMeasurement = currentMeasurement->next;
 
-  if (measurementCounter++ == amountOfMeasurements) {
-    measurementCounter = 0;
+  if (firstMeasurement == nullptr) {
+    firstMeasurement = newMeasurement;
+    currentMeasurement = newMeasurement;
+  } else {
+    currentMeasurement->next = newMeasurement;
+    currentMeasurement = newMeasurement;
   }
+}
+
+void clearMeasurements() {
+  while (firstMeasurement != nullptr) {
+    Measurement* temp = firstMeasurement->next;
+    delete firstMeasurement;
+    firstMeasurement = temp;
+  }
+  currentMeasurement = nullptr;
+  currentMeasurements = 0;
+  runningSum = 0.0;
 }
 
 float calculateAverage() {
@@ -137,11 +205,12 @@ float calculateAverage() {
 }
 
 int calculateRPM() {
-  int rpm = (pulseCount * 60) / 2;
-  pulseCount = 0;
+  // Calculate RPM based on the number of pulses counted in one minute
+  int rpm = (pulseCount * 60) / 2; // Divide by 2 due to the fan's two-pulse per revolution characteristic (if applicable)
+  pulseCount = 0; // Reset pulse count for the next measurement period
   return rpm;
 }
 
 void IRAM_ATTR onFanSpeed() {
-  pulseCount++;
+  pulseCount++; // Increment the pulse count whenever the interrupt is triggered
 }
